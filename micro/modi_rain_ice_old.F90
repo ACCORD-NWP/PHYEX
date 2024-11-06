@@ -4,8 +4,8 @@
 !
 IMPLICIT NONE
 INTERFACE
-      SUBROUTINE RAIN_ICE_OLD (D, CST, PARAMI, ICEP, ICED, BUCONF, TLES,              &
-                               OSEDIC, OCND2, LKOGAN, LMODICEDEP,                     &
+      SUBROUTINE RAIN_ICE_OLD (D, CST, PARAMI, ICEP, ICED, ICE_T_PARAMETERS, BUCONF,  &
+                               TLES, OSEDIC, OCND2, LKOGAN, LMODICEDEP,               &
                                HSEDIM, HSUBG_AUCV_RC, OWARM,                          &
                                KKA, KKU, KKL,                                         &
                                KSPLITR, PTSTEP, KRR, KSIZE, GMICRO,                   &
@@ -27,6 +27,7 @@ USE MODD_PARAM_ICE_n,    ONLY: PARAM_ICE_t
 USE MODD_RAIN_ICE_PARAM_n, ONLY: RAIN_ICE_PARAM_T
 USE MODD_RAIN_ICE_DESCR_n, ONLY: RAIN_ICE_DESCR_T
 USE MODD_LES,              ONLY: TLES_T
+USE MODD_ICET_PARAM, ONLY: ICET_PARAM
 IMPLICIT NONE
 !
 TYPE(DIMPHYEX_T),       INTENT(IN) :: D
@@ -34,6 +35,7 @@ TYPE(CST_T),            INTENT(IN) :: CST
 TYPE(PARAM_ICE_t),      INTENT(IN) :: PARAMI
 TYPE(RAIN_ICE_PARAM_t), INTENT(IN) :: ICEP
 TYPE(RAIN_ICE_DESCR_t), INTENT(IN) :: ICED
+TYPE(ICET_PARAM),       INTENT(IN) :: ICE_T_PARAMETERS
 TYPE(TBUDGETCONF_t),      INTENT(IN)    :: BUCONF
 TYPE(TLES_t),           INTENT(INOUT)   :: TLES          ! modd_les structure
 
