@@ -101,9 +101,18 @@ TYPE TURB_t
   LOGICAL            :: LLEONARD      !< logical switch for the computation of the Leornard Terms
   REAL               :: XCOEFHGRADTHL !< coeff applied to thl contribution
   REAL               :: XCOEFHGRADRM  !< coeff applied to mixing ratio contribution
-  REAL               :: XALTHGRAD  !< altitude from which to apply the Leonard terms
-  LOGICAL            :: LGOGER ! < logical switch for the computation of the Goger Terms
-  REAL               :: XSMAG  ! < dimensionless Smagorinsky constant
+  REAL               :: XALTHGRAD     !< altitude from which to apply the Leonard terms
+  LOGICAL            :: LTURBHSP      !< logical switch for the computation of Pseudo-3D turbulence HSP
+  REAL               :: XCSMAG        !< dimensionless Smagorinsky constant
+  LOGICAL            :: LSOHSP        !< logical switch for pseudo-3D HSP computation 
+                                      !  as in Goecke et Maschulskaya 2021
+  LOGICAL            :: LTKEMAXTURB   !< Switch for TKE limiter
+  REAL               :: XTKEMAX       !< Maximum Value for TKE limiter
+  REAL               :: XWANG_ALPHA   !< Parameters values for Wang et al(2021) horiz length scale
+  REAL               :: XWANG_DELTA
+  CHARACTER(LEN=4)   :: CLMHTURB      !< Horizontal length scale formulation
+  INTEGER            :: NSMAG         !< Formulation for the Smagorinsky mixing length.
+                                      !  0 : original ; 1 : with cell deformation due to orography slope
   REAL               :: XCLDTHOLD  !< cloud threshold to apply the Leonard terms:
                                    !!  negative value to apply everywhere;
                                    !!  0.000001 applied only inside the clouds ri+rc > 10**-6 kg/kg
@@ -177,8 +186,15 @@ LOGICAL, POINTER :: LLEONARD=>NULL()
 REAL, POINTER :: XCOEFHGRADTHL=>NULL()
 REAL, POINTER :: XCOEFHGRADRM=>NULL()
 REAL, POINTER :: XALTHGRAD=>NULL()
-LOGICAL, POINTER :: LGOGER=>NULL()
-REAL, POINTER :: XSMAG=>NULL()
+LOGICAL , POINTER :: LTURBHSP=>NULL()
+REAL    , POINTER :: XCSMAG=>NULL()
+LOGICAL , POINTER :: LSOHSP=>NULL()
+LOGICAL , POINTER :: LTKEMAXTURB=>NULL()
+REAL    , POINTER :: XTKEMAX=>NULL()
+REAL    , POINTER :: XWANG_ALPHA=>NULL()
+REAL    , POINTER :: XWANG_DELTA=>NULL()
+CHARACTER(LEN=4), POINTER :: CLMHTURB=>NULL()
+INTEGER , POINTER :: NSMAG=>NULL()
 REAL, POINTER :: XCLDTHOLD=>NULL()
 REAL, POINTER :: XLINI=>NULL()
 LOGICAL, POINTER   :: LROTATE_WIND=>NULL()
@@ -202,7 +218,9 @@ NAMELIST/NAM_TURBn/XIMPL,CTURBLEN,CTURBDIM,LTURB_FLX,LTURB_DIAG,  &
                    LSIG_CONV,LRMC01,CTOM,&
                    XTKEMIN,XCED,XCTP,XCADAP,&
                    LLEONARD,XCOEFHGRADTHL, XCOEFHGRADRM, &
-                   XALTHGRAD, LGOGER, XSMAG, XCLDTHOLD, XLINI, LHARAT, &
+                   XALTHGRAD, LTURBHSP, XCSMAG,  LSOHSP, LTKEMAXTURB,&
+                   XTKEMAX, XWANG_ALPHA, XWANG_DELTA, CLMHTURB,&
+                   NSMAG, XCLDTHOLD, XLINI, LHARAT, &
                    LPROJQITURB, LSMOOTH_PRANDTL, XMINSIGS, NTURBSPLIT, &
                    LCLOUDMODIFLM, CTURBLEN_CLOUD, &
                    XCOEF_AMPL_SAT, XCEI_MIN, XCEI_MAX, LTURB_PRECIP, &
@@ -280,8 +298,15 @@ LLEONARD=>TURB_MODEL(KTO)%LLEONARD
 XCOEFHGRADTHL=>TURB_MODEL(KTO)%XCOEFHGRADTHL
 XCOEFHGRADRM=>TURB_MODEL(KTO)%XCOEFHGRADRM
 XALTHGRAD=>TURB_MODEL(KTO)%XALTHGRAD
-LGOGER=>TURB_MODEL(KTO)%LGOGER
-XSMAG=>TURB_MODEL(KTO)%XSMAG
+LTURBHSP=>TURB_MODEL(KTO)%LTURBHSP
+XCSMAG=>TURB_MODEL(KTO)%XCSMAG
+LSOHSP=>TURB_MODEL(KTO)%LSOHSP
+LTKEMAXTURB=>TURB_MODEL(KTO)%LTKEMAXTURB
+XTKEMAX=>TURB_MODEL(KTO)%XTKEMAX
+XWANG_ALPHA=>TURB_MODEL(KTO)%XWANG_ALPHA
+XWANG_DELTA=>TURB_MODEL(KTO)%XWANG_DELTA
+CLMHTURB=>TURB_MODEL(KTO)%CLMHTURB
+NSMAG=>TURB_MODEL(KTO)%NSMAG
 XCLDTHOLD=>TURB_MODEL(KTO)%XCLDTHOLD
 XLINI=>TURB_MODEL(KTO)%XLINI
 LROTATE_WIND=>TURB_MODEL(KTO)%LROTATE_WIND
@@ -397,8 +422,15 @@ IF(LLDEFAULTVAL) THEN
   XCOEFHGRADTHL = 1.0
   XCOEFHGRADRM = 1.0
   XALTHGRAD = 2000.0
-  LGOGER=.FALSE.
-  XSMAG=0.20 
+  LTURBHSP=.FALSE.
+  LSOHSP=.TRUE.
+  XCSMAG=0.20
+  LTKEMAXTURB=.FALSE.
+  XTKEMAX=200.
+  XWANG_ALPHA=1.5
+  XWANG_DELTA=500.
+  CLMHTURB='WANG'
+  NSMAG=1
   XCLDTHOLD = -1.0
   XLINI=0.1 !old value: 10.
   LHARAT=.FALSE.

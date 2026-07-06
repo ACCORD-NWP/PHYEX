@@ -5,7 +5,7 @@
 !-----------------------------------------------------------------
       SUBROUTINE TURB(CST,CSTURB,BUCONF,TURBN,NEBN,D,TLES,            &
               & KRR,KRRL,KRRI,HLBCX,HLBCY,KGRADIENTSLEO,              &
-              & KGRADIENTSGOG,KHALO,                                  &
+              & KGRADIENTSHSP,KHALO,                                  &
               & KSPLIT, OCLOUDMODIFLM, KSV,KSV_LGBEG,KSV_LGEND,       &
               & KSV_LIMA_NR, KSV_LIMA_NS, KSV_LIMA_NG, KSV_LIMA_NH,   &
               & O2D,ONOMIXLG,OFLAT,OCOUPLES,OBLOWSNOW,OIBM,OFLYER,    &
@@ -15,7 +15,7 @@
               & PTSTEP,TPFILE,                                        &
               & PDXX,PDYY,PDZZ,PDZX,PDZY,PZZ,                         &
               & PDIRCOSXW,PDIRCOSYW,PDIRCOSZW,PCOSSLOPE,PSINSLOPE,    &
-              & PRHODJ,PTHVREF,PHGRADLEO,PHGRADGOG,PZS,               &
+              & PRHODJ,PTHVREF,PHGRADLEO,PHGRADHSP,PZS,               &
               & PSFTH,PSFRV,PSFSV,PSFU,PSFV,                          &
               & PPABST,PUT,PVT,PWT,PTKET,PSVT,PSRCT,                  &
               & PLENGTHM,PLENGTHH,MFMOIST,                            &
@@ -25,7 +25,7 @@
               & PRUS,PRVS,PRWS,PRTHLS,PRRS,PRSVS,PRTKES,              &
               & PSIGS,                                                &
               & PFLXZTHVMF, PFLXZUMF, PFLXZVMF,                       &
-              & PWTH,PWRC,PWSV,PDP,PTP,PTDIFF,PTDISS,      &
+              & PWTH,PWRC,PWSV,PDP,PTP,PTDIFF,PTDISS,                 &
               & TBUDGETS, KBUDGETS,                                   &
               & PEDR,PLEM,PRTKEMS,PDPMF,PTPMF,                        &
               & PDRUS_TURB,PDRVS_TURB,                                &
@@ -277,6 +277,8 @@ USE MODE_TKE_EPS_SOURCES,     ONLY: TKE_EPS_SOURCES
 USE MODE_TURB_HOR_SPLT,       ONLY: TURB_HOR_SPLT
 USE MODE_TURB_VER,            ONLY: TURB_VER
 USE MODE_UPDATE_LM,           ONLY: UPDATE_LM
+USE MODE_TURB_PSEUDO3D_HSP,   ONLY : TURB_PSEUDO3D_HSP
+USE MODE_TURB_LMH,            ONLY : TURB_LMH
 USE MODE_MSG,                 ONLY: PRINT_MSG, NVERB_FATAL
 !
 USE MODI_LES_MEAN_SUBGRID_PHY
@@ -303,7 +305,7 @@ TYPE(TURB_t),           INTENT(IN)   :: TURBN         ! modn_turbn (turb namelis
 TYPE(NEB_t),            INTENT(IN)   :: NEBN          ! modd_nebn structure
 TYPE(TLES_t),           INTENT(INOUT)   :: TLES          ! modd_les structure
 INTEGER,                INTENT(IN)   :: KGRADIENTSLEO ! Number of stored horizontal gradients for Moeng scheme
-INTEGER,                INTENT(IN)   :: KGRADIENTSGOG ! Number of stored horizontal gradients for Goger scheme
+INTEGER,                INTENT(IN)   :: KGRADIENTSHSP ! Number of stored horizontal gradients for HSP scheme
 INTEGER,                INTENT(IN)   :: KRR           ! number of moist var.
 INTEGER,                INTENT(IN)   :: KRRL          ! number of liquid water var.
 INTEGER,                INTENT(IN)   :: KRRI          ! number of ice water var.
@@ -345,7 +347,7 @@ REAL, DIMENSION(D%NIJT,D%NKT), INTENT(IN)      ::  MFMOIST ! moist mass flux dua
 REAL, DIMENSION(D%NIJT,D%NKT), INTENT(IN)      ::  PTHVREF   ! Virtual Potential
                                         ! Temperature of the reference state
 REAL, DIMENSION(D%NIJT,D%NKT,KGRADIENTSLEO),   INTENT(IN) ::  PHGRADLEO  ! horizontal gradients in Moeng
-REAL, DIMENSION(D%NIJT,D%NKT,KGRADIENTSGOG),   INTENT(IN) ::  PHGRADGOG  ! horizontal gradients in Goger
+REAL, DIMENSION(D%NIJT,D%NKT,KGRADIENTSHSP),   INTENT(IN) ::  PHGRADHSP  ! horizontal gradients in Goger
 !
 REAL, DIMENSION(D%NIJT),   INTENT(IN)      ::  PSFTH,PSFRV,   &
 ! normal surface fluxes of theta and Rv
@@ -520,6 +522,8 @@ REAL, DIMENSION(D%NIJT,D%NKT,MERGE(KSV+KRR,KSV,TURBN%LTURB_PRECIP)) :: ZWORKT, Z
 REAL, DIMENSION(D%NIJT,      MERGE(KSV+KRR,KSV,TURBN%LTURB_PRECIP)) :: ZWORKSFSV
 REAL, DIMENSION(D%NIJT,D%NKT,MERGE(KSV+KRR,KSV,TURBN%LTURB_PRECIP)) :: ZWORKWSV
 INTEGER :: ISV
+! Pseudo 3D
+REAL, DIMENSION(D%NIJT,D%NKT) :: ZHSP, ZLMH
 !
 !*      1.PRELIMINARIES
 !         -------------
@@ -1536,26 +1540,22 @@ ENDIF
 
 !  6.2 Horizontal gradients as in Göger et al. (2016)
 
-IF (TURBN%LGOGER) THEN
-  ! Add horizontal terms from Göger  et al. (2018)
-  ! Increase the Dyn. Prod.
-
-  DO JK=1, IKT
-    DO JIJ=IIJB, IIJE
-      !* Computation of the horizontal mixing length
-      !* Add horizontal terms
-      ! DUDX=PHGRADGOG(IIJB:IIJE,1:IKT,1)
-      ! DUDY=PHGRADGOG(IIJB:IIJE,1:IKT,2)
-      ! DVDX=PHGRADGOG(IIJB:IIJE,1:IKT,3)
-      ! DVDY=PHGRADGOG(IIJB:IIJE,1:IKT,4)
-      PDP(JIJ, JK)=PDP(JIJ, JK)+TURBN%XSMAG**2*PDXX(JIJ, JK)*PDYY(JIJ, JK)* &
-                       &(PHGRADGOG(JIJ, JK, 1)*PHGRADGOG(JIJ, JK, 1)           &
-                       &+PHGRADGOG(JIJ, JK, 4)*PHGRADGOG(JIJ, JK, 4)           &
-                       &+0.5*(PHGRADGOG(JIJ, JK, 2)+PHGRADGOG(JIJ, JK, 3))     &
-                       &*(PHGRADGOG(JIJ, JK, 2)+PHGRADGOG(JIJ, JK, 3)))**(3./2.)
-    END DO
-  END DO
-
+IF (TURBN%LTURBHSP) THEN
+ ! Add horizontal terms from Göger  et al. (2018)
+ ! Increase the Dyn. Prod.
+  DO JK=IKTB,IKTE
+    DO JIJ=IIJB,IIJE
+      ZHSP(JIJ,JK) = 0.
+      ZLMH(JIJ,JK) = 1.
+    ENDDO
+  ENDDO
+  CALL TURB_LMH(D,TURBN,KGRADIENTSHSP,PDXX,PDYY,PDZX,PDZY,ZTHLM,PTKET,PUT,PVT,PHGRADHSP,ZLM,ZLMH)
+  CALL TURB_PSEUDO3D_HSP(D,CST,CSTURB,TURBN,KGRADIENTSHSP,PHGRADHSP,PTKET,ZLMH,ZHSP)
+  DO JK=1,IKT
+    DO JIJ=IIJB,IIJE
+      PDP(JIJ,JK) = PDP(JIJ,JK) + ZHSP(JIJ,JK)
+    ENDDO
+  ENDDO
 ENDIF
 
 !  6.3 TKE evolution equation

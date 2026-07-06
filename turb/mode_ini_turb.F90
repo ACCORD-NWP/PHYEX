@@ -53,7 +53,7 @@ CONTAINS
 !
 USE MODD_CST
 USE MODD_TURB_n, ONLY : XCTP, XCED, XCSHF, XCHF, XCTV, XCHV, XCHT1, XCHT2, XCPR1, CTURBLEN, &
-                      & XBL89EXP,  XUSRBL89, LBL89EXP
+                      & XBL89EXP,  XUSRBL89, LBL89EXP, LTURBHSP, LSOHSP
 USE MODD_NEB_n, ONLY: LSTATNW
 USE MODD_CTURB ! For true constants (not tunable)
 USE MODD_PARAMETERS, ONLY : XUNDEF
@@ -268,6 +268,25 @@ END IF
 XUSRBL89=1./XBL89EXP
 !
 !
+
+!         8. Constants for pseudo-3D turbulence
+
+XCH=4./15.
+IF (LTURBHSP) THEN
+  IF (LSOHSP) THEN ! Goecke and Maschulskaya (2021)
+    XC0=SQRT((XCH /XCEP)**3/XCED)
+    XC1=0.5*SQRT(XCEP/(XCH*XCED))
+    XC2=XC1
+  ELSE ! Göger et al (2018)
+    ! Limitation from equilibrium hypothesis
+    XC0=(1./(2.*SQRT(2.)))*SQRT((XCH /XCEP)**3/XCED)
+    XC1=1.
+    XC2=0.
+  ENDIF
+ENDIF
+!
+!
+
 IF (LHOOK) CALL DR_HOOK('INI_TURB',1,ZHOOK_HANDLE)
 END SUBROUTINE INI_TURB
 END MODULE MODE_INI_TURB
