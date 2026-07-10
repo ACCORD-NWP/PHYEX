@@ -73,6 +73,9 @@ REAL :: XPHI_LIM     ! Threshold value for Phi3 and Psi3
 REAL :: XSBL_O_BL    ! SBL height / BL height ratio
 REAL :: XFTOP_O_FSURF! Fraction of surface (heat or momentum) flux used to define top of BL
 !
+REAL :: XCH          ! Coefficient parameter for horizontal analog in Pseudo-3D PD_hor formula
+REAL :: XC0,XC1,XC2  ! Coefficient parameters in Pseudo-3D PD_hor formula
+!
 END TYPE CSTURB_t
 !
 TYPE(CSTURB_t), TARGET, SAVE :: CSTURB
@@ -107,6 +110,11 @@ REAL,POINTER :: XCTD => NULL()
 REAL,POINTER :: XPHI_LIM => NULL()
 REAL,POINTER :: XSBL_O_BL => NULL()
 REAL,POINTER :: XFTOP_O_FSURF => NULL()
+!
+REAL,POINTER :: XCH => NULL()
+REAL,POINTER :: XC0 => NULL()
+REAL,POINTER :: XC1 => NULL()
+REAL,POINTER :: XC2 => NULL()
 
 CONTAINS
 SUBROUTINE CTURB_ASSOCIATE()
@@ -141,5 +149,10 @@ IMPLICIT NONE
   XPHI_LIM=>CSTURB%XPHI_LIM
   XSBL_O_BL=>CSTURB%XSBL_O_BL
   XFTOP_O_FSURF=>CSTURB%XFTOP_O_FSURF
+  !
+  XCH=>CSTURB%XCH
+  XC0=>CSTURB%XC0
+  XC1=>CSTURB%XC1
+  XC2=>CSTURB%XC2
 END SUBROUTINE CTURB_ASSOCIATE
 END MODULE MODD_CTURB
